@@ -64,4 +64,5 @@ terraform state show 'yandex_compute_instance.instance' | grep nat_ip_address
 nat_ip_address     = "158.160.41.70"
 ```
 For example, visit http://158.160.41.70, and the test web page should be displayed:
+<img width="657" alt="image" src="https://github.com/SergeyNowitzki/otus-linux-adv/assets/39993377/7826bd3b-cfb3-4bd8-ab67-a9785b932db7">
 
