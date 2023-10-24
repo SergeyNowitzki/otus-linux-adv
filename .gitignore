@@ -163,3 +163,13 @@ cython_debug/
 .terragrunt-cache
 *.tfstate
 .DS_Store
+
+# Vim undo files. Python#
+#######################
+*.un~
+*.pyc
+*.swp
+*.swl
+*.swm
+*.swo
+
