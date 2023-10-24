@@ -42,4 +42,5 @@ terraform show -json | jq
 
 ```
 For example, visit https://192.168.99.131:8006/, and the test web page should be displayed:
+<img width="1237" alt="image" src="https://github.com/SergeyNowitzki/otus-linux-adv/assets/39993377/8021ea53-9aaa-44c4-bd31-a792be3af991">
 
