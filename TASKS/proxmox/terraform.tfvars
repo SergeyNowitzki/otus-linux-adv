@@ -1,0 +1,7 @@
+pm_api_url = "https://192.168.99.131:8006/api2/json"
+cloudinit_template_name = "ubuntu-templ-22"
+proxmox_node = "pve-1"
+ssh_key = "YOUR SSH PUB KEY"
+proxmox_api_token_id="root@pam!terraform2"
+proxmox_api_token_secret="87d2a2c0-6717-4ff4-b6ba-7b4d32ce7025"
+proxmox_password="secure1234"
