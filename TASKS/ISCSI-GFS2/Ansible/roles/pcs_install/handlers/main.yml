@@ -1,0 +1,6 @@
+---
+# handlers file for pcs_install
+- name: restart pcsd
+  systemd:
+    name: pcsd.service
+    state: restarted

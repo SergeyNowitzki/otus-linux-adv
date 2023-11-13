@@ -1,0 +1,26 @@
+---
+# tasks file for pcs_install
+- name: Install Pacemaker
+  apt:
+    name: "{{ packages }}"
+    state: present
+  vars:
+    packages:
+      - pcs
+      - pacemaker
+      - fence-agents
+
+- name: Set password for local hacluster user
+  user:
+    name: "hacluster"
+    password: "{{ pcs_password | string | password_hash('sha512')}}" 
+    state: present
+    update_password: always
+    create_home: yes
+  notify: "restart pcsd"
+  no_log: false
+
+- name: Enable Pacemaker service
+  systemd:
+    name: pcsd.service
+    enabled: true

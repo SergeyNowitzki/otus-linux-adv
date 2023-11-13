@@ -1,0 +1,19 @@
+---
+# handlers file for iscsi_initiator
+- name: Restart open-iscsi
+  systemd:
+    name: iscsid.service
+    state: restarted
+
+- name: Restart multipathd
+  systemd:
+    name: multipathd.service
+    state: restarted
+
+- name: Reload multipath
+  shell: multipath -r
+
+- name: restart pcsd
+  systemd:
+    name: pcsd.service
+    state: restarted
