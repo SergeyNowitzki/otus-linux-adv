@@ -1,0 +1,13 @@
+---
+- hosts: all
+  name: iscsi target and initiator installation and configuration
+  become: true
+
+  roles:
+    - { role: base_config, when: ansible_system == 'Linux', tags: tag1 }
+    - { role: iscsi_target, when: "inventory_hostname in groups['iscsi-target']", tags: tag2 }
+    - { role: iscsi_initiator, when: "inventory_hostname in groups['iscsi-initiator']", tags: tag3 }
+    - { role: pcs_install, when: "inventory_hostname in groups['iscsi-initiator']", tags: tag4 }
+    - { role: fence_agents, when: "inventory_hostname in groups['iscsi-initiator']", tags: tag5 }
+    - { role: pcs_config, when: "inventory_hostname in groups['iscsi-initiator']", tags: tag6 }
+    - { role: gfs2_config, when: "inventory_hostname in groups['iscsi-initiator']", tags: tag7 }

@@ -1,0 +1,195 @@
+---
+# tasks file for fence_agents
+
+- block:    #================= Block DEBIAN =================
+  - name: Install components for building
+    apt:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - git
+      - autoconf
+      - automake
+      - libtool
+      - gcc
+      - python3-pip
+      - libnss3-dev
+      - libxml2-dev
+      - uuid-dev
+      - libuuid1
+      - libvirt-dev
+      - libcorosync-common-dev
+      - bison
+      - byacc
+
+  - name: Install required pip modules
+    pip:
+      name: "{{ packages }}"
+    vars:
+      packages:
+      - pexpect
+      - requests
+
+  - name: Check for replay (/opt/pcs_fence_install_done exists)
+    stat:
+      path: /opt/pcs_fence_install_done
+    register: pcs_fence_install_done
+
+  - name: Clean old build directory (/root/fence-agents)
+    file:
+      path: /root/fence-agents
+      state: absent
+      force: yes
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  - name: disable ssl verification in git.config
+    command: git config --global http.sslVerify false
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  - name: Clone fence-agents from git to /root/fence-agents
+    git:
+      repo: 'https://github.com/ClusterLabs/fence-agents.git'
+      dest: /root/fence-agents/
+      clone: yes
+      version: "v4.7.1"
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  - name: Run pre-build scripts from /root/fence-agents
+    command: "{{ item }}"
+    args:
+      chdir: /root/fence-agents/
+    with_items:
+      - "/root/fence-agents/autogen.sh"
+      - "/root/fence-agents/configure"
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  - name: Build fence-agents
+    make:
+      chdir: /root/fence-agents/
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  - name: Install fence-agents
+    make:
+      chdir: /root/fence-agents/
+      target: install
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  - name: Set replay protection (/opt/pcs_fence_install_done)
+    file:
+      path: /opt/pcs_fence_install_done
+      state: touch
+      owner: root
+      group: root
+      mode: '0744'
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  when: ansible_os_family == "Debian"
+
+- block:    #================= Block REDHAT =================
+  - name: use python3 on centos7 via bashrc
+    lineinfile:
+      path: /root/.bashrc
+      line: "alias python='/usr/bin/python3.6'"
+    notify:
+      - source bashrc
+
+  - name: Install components for building
+    yum:
+      name: "{{ packages }}"
+      state: present
+    vars:
+      packages:
+      - git
+      - autoconf
+      - automake
+      - libtool
+      - gcc
+      - python3-pip
+      - nss-devel
+      - libxml2-devel
+      - uuid-devel
+      - libuuid-devel
+      - libvirt-devel
+      - corosynclib-devel
+      - bison
+      - byacc
+
+  - name: use pip3 on centos7 via bashrc
+    lineinfile:
+      path: /root/.bashrc
+      line: "alias pip='/usr/bin/pip3'"
+    notify:
+      - source bashrc
+
+  - name: coppy bash file with pip modules
+    copy:
+      src: pip_modules.sh
+      dest: /root/pip_modules.sh
+      mode: 0644
+    notify:
+      - execute bash pip
+  
+  - name: Check for replay (/opt/pcs_fence_install_done exists)
+    stat:
+      path: /opt/pcs_fence_install_done
+    register: pcs_fence_install_done
+  
+  - name: Clean old build directory (/root/fence-agents)
+    file:
+      path: /root/fence-agents
+      state: absent
+      force: yes
+    when:
+      - pcs_fence_install_done.stat.exists != True
+  
+  - name: Clone fence-agents from git to /root/fence-agents
+    git:
+      repo: 'https://github.com/ClusterLabs/fence-agents.git'
+      dest: /root/fence-agents/
+      clone: yes
+      version: "v4.7.1"
+    when:
+      - pcs_fence_install_done.stat.exists != True
+  
+  - name: Run pre-build scripts from /root/fence-agents
+    command: "{{ item }}"
+    args:
+      chdir: /root/fence-agents/
+    with_items:
+      - "/root/fence-agents/autogen.sh"
+      - "/root/fence-agents/configure"
+    when:
+      - pcs_fence_install_done.stat.exists != True
+  
+  - name: Build fence-agents
+    make:
+      chdir: /root/fence-agents/
+    when:
+      - pcs_fence_install_done.stat.exists != True
+  
+  - name: Install fence-agents
+    make:
+      chdir: /root/fence-agents/
+      target: install
+    when:
+      - pcs_fence_install_done.stat.exists != True
+  
+  - name: Set replay protection (/opt/pcs_fence_install_done)
+    file:
+      path: /opt/pcs_fence_install_done
+      state: touch
+      owner: root
+      group: root
+      mode: '0744'
+    when:
+      - pcs_fence_install_done.stat.exists != True
+
+  when: ansible_os_family == "RedHat"

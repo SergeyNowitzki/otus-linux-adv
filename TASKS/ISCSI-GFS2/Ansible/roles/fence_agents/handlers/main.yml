@@ -1,0 +1,12 @@
+---
+# handlers file for fence_agents
+
+- name: Debug - Handler execution
+  debug:
+    msg: "Handler 'source bashrc' is being executed"
+
+- name: source bashrc
+  command: source /root/.bashrc
+
+- name: execute bash pip
+  command: bash /root/pip_modules.sh

@@ -1,0 +1,161 @@
+---
+# tasks file for iscsi_initiator
+
+- block:    #================= Block DEBIAN =================
+  - name: Install open-iscsi
+    apt:
+      name: open-iscsi
+      state: latest
+
+  - name: Start open-iscsi and enabel it on boot
+    service:
+      name: open-iscsi
+      state: started
+      enabled: true
+
+  - name: multipathd start and enable multipathd on boot
+    service:
+      name: multipathd
+      state: started
+      enabled: true
+
+  - name: copy InitiatorName in file /etc/iscsi/initiatorname.iscsi from iqn variable
+    lineinfile:
+      path: /etc/iscsi/initiatorname.iscsi
+      regexp: '^InitiatorName='
+      line: InitiatorName={{ iqn }}
+    changed_when: true
+    notify:
+      - Restart open-iscsi
+
+  - name: Discovery iSCSI target
+    shell: iscsiadm -m discovery -t st -p {{ tgt_ip }}
+    register: iscsi_discovery
+
+  - name: Connection iSCSI target
+    shell: iscsiadm -m node -l -T {{ tgt_iqn }} -p {{ tgt_ip }}
+    changed_when: true
+
+  - name: Check if iSCSI target is connected
+    shell: iscsiadm -m session
+    register: iscsi_session
+
+  - name: Print iSCSI session
+    debug:
+      var: iscsi_session.stdout_lines
+
+  - name: Install iSCSI multipath-tools
+    apt:
+      name: multipath-tools
+      state: latest
+      update_cache: true
+
+  - name: adding WWID to the list the list of allowed names /etc/multipath/wwids
+    shell: multipath -a {{ mpath_dev }}
+    notify:
+      - Reload multipath
+
+  - name: Wait a little
+    pause:
+      seconds: 10
+
+  - name: get string WWID from file /etc/multipath/wwids
+    shell: cat /etc/multipath/wwids | egrep -i '^/\w+/' | tr -d '//'
+    register: wwid
+
+  - name: Print WWID
+    debug:
+      var: wwid.stdout_lines
+
+  - name: generate multipath.conf from j2 template and copy to an initiator
+    template:
+      src: "templates/multipath.conf.j2"
+      dest: "/etc/multipath.conf"
+      mode: 0644
+    notify:
+      - Restart multipathd
+  when: ansible_os_family == "Debian"
+
+- block:    #================= Block REDHAT =================
+  - name: Install iscsi-initiator-utils
+    yum:
+      name: iscsi-initiator-utils
+      state: latest
+
+  - name: Start iscsi and enabel it on boot
+    service:
+      name: iscsi
+      state: started
+      enabled: true
+
+  - name: Install device-mapper-multipath
+    yum:
+      name: device-mapper-multipath
+      state: latest
+      update_cache: true
+
+  - name: multipathd start and enable multipathd on boot
+    service:
+      name: multipathd
+      state: started
+      enabled: true
+
+  - name: copy InitiatorName in file /etc/iscsi/initiatorname.iscsi from iqn variable
+    lineinfile:
+      path: /etc/iscsi/initiatorname.iscsi
+      regexp: '^InitiatorName='
+      line: InitiatorName={{ iqn }}
+    changed_when: true
+    notify:
+      - Restart iscsi
+
+  - name: Discovery iSCSI target
+    shell: iscsiadm -m discovery -t st -p {{ tgt_ip }}
+    register: iscsi_discovery
+
+  - name: Connection iSCSI target
+    shell: iscsiadm -m node -l -T {{ tgt_iqn }} -p {{ tgt_ip }}
+    changed_when: true
+    notify:
+      - Generate multipath config
+
+  - name: Check if iSCSI target is connected
+    shell: iscsiadm -m session
+    register: iscsi_session
+
+  - name: Print iSCSI session
+    debug:
+      var: iscsi_session.stdout_lines
+
+  - name: enabe mpathconf
+    shell: mpathconf --enable --with_multipathd y
+    notify:
+      - Restart multipathd
+      - Reload multipath
+
+  - name: Wait a little
+    pause:
+      seconds: 10
+
+  - name: adding WWID to the list the list of allowed names /etc/multipath/wwids
+    shell: multipath -a {{ mpath_dev_centos }}
+    notify:
+      - Reload multipath
+
+  - name: get string WWID from file /etc/multipath/wwids
+    shell: cat /etc/multipath/wwids | egrep -i '^/\w+/' | tr -d '//'
+    register: wwid
+
+  - name: Print WWID
+    debug:
+      var: wwid.stdout_lines
+
+  - name: generate multipath.conf from j2 template and copy to an initiator
+    template:
+      src: "templates/multipath.conf.j2"
+      dest: "/etc/multipath.conf"
+      mode: 0644
+    notify:
+      - Restart multipathd
+
+  when: ansible_os_family == "RedHat"

@@ -1,0 +1,3 @@
+---
+# vars file for pcs_config
+iscsi_initiators_list: "{{ groups['iscsi-initiator'] | join(' ') }}"

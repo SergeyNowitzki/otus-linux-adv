@@ -1,0 +1,34 @@
+---
+# handlers file for iscsi_initiator
+- name: Debug - Handler execution
+  debug:
+    msg: "Handler 'Restart open-iscsi' is being executed"
+
+- name: Restart open-iscsi
+  service:
+    name: open-iscsi
+    state: restarted
+
+- name: Restart iscsi
+  service:
+    name: iscsid
+    state: restarted
+
+- name: Generate multipath config
+  shell: mpathconf --enable --with_multipathd y
+  notify:
+    - Restart multipathd
+    - Reload multipath
+
+- name: Restart multipathd
+  service:
+    name: multipathd
+    state: restarted
+
+- name: Reload multipath
+  shell: multipath -r
+
+- name: restart pcsd
+  service:
+    name: pcsd.service
+    state: restarted

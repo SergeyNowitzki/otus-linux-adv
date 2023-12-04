@@ -1,0 +1,127 @@
+---
+# tasks file for pcs_config
+- block:    #================= Block DEBIAN =================
+  - name: Configuring cluster (step 1)
+    command: "pcs host auth {{ iscsi_initiators_list }} -u hacluster -p {{ pcs_password }}"
+
+  - name: Check for replay (/opt/pcs_config_done exists)
+    stat:
+      path: /opt/pcs_config_done
+    register: pcs_config_done
+
+  - name: Configuring cluster (step 2)
+    command: "pcs cluster setup {{ cluster_name }} {{ iscsi_initiators_list }} --force"
+
+  - name: Set replay protection (/opt/pcs_config_done)
+    file:
+      path: /opt/pcs_config_done
+      state: touch
+      owner: root
+      group: root
+      mode: '0744'
+    when:
+      - pcs_config_done.stat.exists != True
+
+  - name: Configuring cluster (step 3)
+    shell: "{{ item }}"
+    with_items:
+      - "pcs cluster enable --all"
+      - "pcs cluster start --all"
+
+  - name: Wait a little
+    pause:
+      seconds: 10
+
+  - name: Check for replay (/opt/pcs_fence_config_done exists)
+    stat:
+      path: /opt/pcs_fence_config_done
+    register: pcs_fence_config_done
+
+  - name: Configure fencing on Virtualbox
+    command: "{{ item }}"
+    with_items:
+      - "pcs stonith create pcs1_fence_dev fence_vbox ipaddr=\"{{ virtualbox_host }}\" login=\"{{ virtualbox_host_username }}\" passwd=\"{{ virtualbox_host_password }}\" vboxmanage_path=\"{{ virtualbox_vboxmanage_path }}\" power_wait=\"10\" secure=\"1\" port=\"init-node-1\" pcmk_host_list=\"init-node-1.local\""
+      - "pcs stonith create pcs2_fence_dev fence_vbox ipaddr=\"{{ virtualbox_host }}\" login=\"{{ virtualbox_host_username }}\" passwd=\"{{ virtualbox_host_password }}\" vboxmanage_path=\"{{ virtualbox_vboxmanage_path }}\" power_wait=\"10\" secure=\"1\" port=\"init-node-2\" pcmk_host_list=\"init-node-2.local\""
+      - "pcs stonith create pcs3_fence_dev fence_vbox ipaddr=\"{{ virtualbox_host }}\" login=\"{{ virtualbox_host_username }}\" passwd=\"{{ virtualbox_host_password }}\" vboxmanage_path=\"{{ virtualbox_vboxmanage_path }}\" power_wait=\"10\" secure=\"1\" port=\"init-node-3\" pcmk_host_list=\"init-node-3.local\""
+      - "pcs constraint location pcs1_fence_dev avoids init-node-1.local"
+      - "pcs constraint location pcs2_fence_dev avoids init-node-2.local}"
+      - "pcs constraint location pcs3_fence_dev avoids init-node-3.local}"
+    when: (ansible_virtualization_type == "virtualbox" and pcs_fence_config_done.stat.exists != True)
+    no_log: False
+
+  - name: Set replay protection (/opt/pcs_fence_config_done)
+    file:
+      path: /opt/pcs_fence_config_done
+      state: touch
+      owner: root
+      group: root
+      mode: '0744'
+    when:
+      - pcs_fence_config_done.stat.exists != True
+
+  when: ansible_os_family == "Debian"
+
+- block:    #================= Block REDHAT =================
+  
+  - name: Configuring cluster (step 1)
+    command: "pcs cluster auth {{ iscsi_initiators_list }} -u hacluster -p {{ pcs_password }}"
+    no_log: false
+  
+  - name: Check for replay (/opt/pcs_config_done exists)
+    stat:
+      path: /opt/pcs_config_done
+    register: pcs_config_done
+  
+  - name: Configuring cluster (step 2)
+    command: "pcs cluster setup --name {{ cluster_name }} {{ iscsi_initiators_list }} --force"
+    when:
+      - pcs_config_done.stat.exists != True
+  
+  - name: Set replay protection (/opt/pcs_config_done)
+    file:
+      path: /opt/pcs_config_done
+      state: touch
+      owner: root
+      group: root
+      mode: '0744'
+    when:
+      - pcs_config_done.stat.exists != True
+  
+  - name: Configuring cluster (step 3)
+    command: "{{ item }}"
+    with_items:
+      - "pcs cluster enable --all"
+      - "pcs cluster start --all"
+  
+  - name: Wait a little
+    pause:
+      seconds: 10
+  
+  - name: Check for replay (/opt/pcs_fence_config_done exists)
+    stat:
+      path: /opt/pcs_fence_config_done
+    register: pcs_fence_config_done
+  
+  - name: Configure fencing on Virtualbox
+    command: "{{ item }}"
+    with_items:
+      - "pcs stonith create pcs1_fence_dev fence_vbox ipaddr=\"{{ virtualbox_host }}\" login=\"{{ virtualbox_host_username }}\" passwd=\"{{ virtualbox_host_password }}\" vboxmanage_path=\"{{ virtualbox_vboxmanage_path }}\" power_wait=\"10\" secure=\"1\" port=\"init-node-1\" pcmk_host_list=\"init-node-1.local\""
+      - "pcs stonith create pcs2_fence_dev fence_vbox ipaddr=\"{{ virtualbox_host }}\" login=\"{{ virtualbox_host_username }}\" passwd=\"{{ virtualbox_host_password }}\" vboxmanage_path=\"{{ virtualbox_vboxmanage_path }}\" power_wait=\"10\" secure=\"1\" port=\"init-node-2\" pcmk_host_list=\"init-node-2.local\""
+      - "pcs stonith create pcs3_fence_dev fence_vbox ipaddr=\"{{ virtualbox_host }}\" login=\"{{ virtualbox_host_username }}\" passwd=\"{{ virtualbox_host_password }}\" vboxmanage_path=\"{{ virtualbox_vboxmanage_path }}\" power_wait=\"10\" secure=\"1\" port=\"init-node-3\" pcmk_host_list=\"init-node-3.local\""
+      - "pcs constraint location pcs1_fence_dev avoids init-node-1.local"
+      - "pcs constraint location pcs2_fence_dev avoids init-node-2.local}"
+      - "pcs constraint location pcs3_fence_dev avoids init-node-3.local}"
+    when: (ansible_virtualization_type == "virtualbox" and pcs_fence_config_done.stat.exists != True)
+    no_log: true
+  
+  - name: Set replay protection (/opt/pcs_fence_config_done)
+    file:
+      path: /opt/pcs_fence_config_done
+      state: touch
+      owner: root
+      group: root
+      mode: '0744'
+    when:
+      - pcs_fence_config_done.stat.exists != True
+  
+  when: ansible_os_family == "RedHat"
