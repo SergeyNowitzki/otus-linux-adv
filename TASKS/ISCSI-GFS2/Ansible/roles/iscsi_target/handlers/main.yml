@@ -1,4 +1,0 @@
----
-# handlers file for iscsi_target
-    - name: Apply targetcli saveconfig
-      shell: targetctl restore /etc/rtslib-fb-target/saveconfig.json
