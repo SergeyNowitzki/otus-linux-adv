@@ -1,0 +1,15 @@
+Ceph:
+  params:
+    pools:
+      - pool_name: RBD_POOL
+        size: 3
+        osd: 15
+        data: 75
+        tgt_pgs_per_osd: 100
+        osd_size_gb: 2
+      - pool_name: CEPHFS_POOL
+        size: 3
+        osd: 15
+        data: 25
+        tgt_pgs_per_osd: 100
+        osd_size_gb: 2

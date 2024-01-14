@@ -1,0 +1,5 @@
+{% for cfg in config %}
+ceph osd pool create {{ cfg.pool_name }} {{ cfg.pg_per_pool }}
+ceph osd pool set {{ cfg.pool_name }} size {{ cfg.size }}
+while [ $(ceph -s | grep creating -c) -gt 0 ]; do echo -n .;sleep 1; done
+{% endfor %}
